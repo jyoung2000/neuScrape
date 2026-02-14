@@ -21,15 +21,14 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
 ENV HF_HOME=/opt/huggingface
 ENV TRANSFORMERS_CACHE=/opt/huggingface/hub
 
-# Install Playwright Chromium with system deps
-RUN playwright install --with-deps chromium
+# Install Playwright Chromium (system deps already installed above via apt-get)
+RUN playwright install chromium \
+    && rm -rf /tmp/* /root/.cache/pip
 
 # Pre-download AI model weights during build (so container starts instantly)
-RUN python scripts/download_model.py
-
-# Remove root's HF cache (token file, etc) — models live in /opt/huggingface
-# Set HF_HUB_OFFLINE=1 so HuggingFace uses pre-downloaded models without contacting the hub
-RUN rm -rf /root/.cache/huggingface
+# Then clean up root's HF cache (token file, etc) — models live in /opt/huggingface
+RUN python scripts/download_model.py \
+    && rm -rf /root/.cache/huggingface /root/.cache/pip /tmp/*
 ENV HF_HUB_OFFLINE=1
 
 # Create non-root user and set permissions
@@ -37,10 +36,8 @@ RUN useradd -m scraper \
     && mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper \
     && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper \
     && chmod -R o+rx /opt/playwright \
-    && chmod -R o+rx /opt/huggingface
-
-# Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
+    && chmod -R o+rx /opt/huggingface \
+    && chmod +x /app/entrypoint.sh
 
 EXPOSE 1629
 VOLUME ["/data"]
