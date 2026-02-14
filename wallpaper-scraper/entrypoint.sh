@@ -5,9 +5,10 @@ set -e
 mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper
 chown -R scraper:scraper /data /tmp/wallpaper-scraper 2>/dev/null || true
 
-# Drop to non-root user and exec the main process with required env vars
-exec su scraper -p -s /bin/sh -c "\
-  PLAYWRIGHT_BROWSERS_PATH=/opt/playwright \
-  HF_HOME=/opt/huggingface \
-  TRANSFORMERS_CACHE=/opt/huggingface/hub \
-  exec $*"
+# Capture the full current environment (including docker-compose vars + Dockerfile ENV)
+# in shell-sourceable format, so su doesn't strip them
+export -p > /tmp/wallpaper-scraper/.env_runtime
+chown scraper:scraper /tmp/wallpaper-scraper/.env_runtime 2>/dev/null || true
+
+# Drop to non-root user, restore env vars, exec the main process
+exec su scraper -s /bin/sh -c '. /tmp/wallpaper-scraper/.env_runtime; exec "$@"' -- "$@"

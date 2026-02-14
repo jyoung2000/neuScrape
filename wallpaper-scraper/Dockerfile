@@ -27,6 +27,11 @@ RUN playwright install --with-deps chromium
 # Pre-download AI model weights during build (so container starts instantly)
 RUN python scripts/download_model.py
 
+# Remove root's HF cache (token file, etc) — models live in /opt/huggingface
+# Set HF_HUB_OFFLINE=1 so HuggingFace uses pre-downloaded models without contacting the hub
+RUN rm -rf /root/.cache/huggingface
+ENV HF_HUB_OFFLINE=1
+
 # Create non-root user and set permissions
 RUN useradd -m scraper \
     && mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper \
