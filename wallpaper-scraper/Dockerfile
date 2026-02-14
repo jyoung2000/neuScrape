@@ -22,12 +22,13 @@ RUN playwright install chromium
 # Pre-download AI model weights during build (so container starts instantly)
 RUN python scripts/download_model.py
 
-# Create directories
-RUN mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper
+# Create non-root user and default directories
+RUN useradd -m scraper \
+    && mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper \
+    && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper
 
-# Non-root user
-RUN useradd -m scraper && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper
-USER scraper
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 1629
 VOLUME ["/data"]
@@ -35,4 +36,6 @@ VOLUME ["/data"]
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:1629/health')" || exit 1
 
+# Entrypoint creates dirs after volume mount, then drops to scraper user
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "1629"]

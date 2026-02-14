@@ -11,11 +11,6 @@ def setup_logging(level: str = None) -> logging.Logger:
     log_level = level or os.environ.get("LOG_LEVEL", "INFO")
     log_file = os.environ.get("LOG_FILE", "/data/logs/scraper.log")
 
-    # Create log directory if needed
-    log_dir = os.path.dirname(log_file)
-    if log_dir:
-        os.makedirs(log_dir, exist_ok=True)
-
     logger = logging.getLogger("wallpaper-scraper")
     logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
 
@@ -34,8 +29,11 @@ def setup_logging(level: str = None) -> logging.Logger:
     console_handler.setFormatter(console_fmt)
     logger.addHandler(console_handler)
 
-    # File handler
+    # File handler (best-effort — volume may not be writable)
     try:
+        log_dir = os.path.dirname(log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)
         file_fmt = logging.Formatter(
@@ -44,7 +42,7 @@ def setup_logging(level: str = None) -> logging.Logger:
         file_handler.setFormatter(file_fmt)
         logger.addHandler(file_handler)
     except (OSError, PermissionError):
-        # Can't write log file — console only
+        # Can't write log file — console only is fine
         logger.warning("Could not create log file at %s, using console only", log_file)
 
     return logger
