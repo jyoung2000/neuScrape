@@ -1,0 +1,28 @@
+# Site-specific adapter template (optional — generic adapter handles most sites)
+# Copy this file and rename to match the site domain (e.g., wallhaven.yaml)
+
+site:
+  name: "Example Wallpaper Site"
+  domain: "example.com"
+  enabled: true
+
+# Override generic adapter selectors if needed
+selectors:
+  image_links: "a.wallpaper-link"
+  full_image: "img#wallpaper"
+  download_button: "a.download-btn"
+  next_page: "a.next"
+  artist_name: ".artist-name"
+  artist_link: ".artist-name a"
+  upload_date: "time[datetime]"
+  tags: ".tag-list a"
+
+# Override pagination
+pagination:
+  type: "url_param"  # url_param, next_link, infinite_scroll
+  param: "page"
+  start: 1
+
+# Override delays (be respectful)
+rate_limit:
+  request_delay_seconds: 3

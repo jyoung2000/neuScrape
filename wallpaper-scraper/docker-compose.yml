@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  wallpaper-scraper:
+    build: .
+    container_name: wallpaper-scraper
+    ports:
+      - "1629:1629"
+    environment:
+      - BASEROW_API_URL=${BASEROW_API_URL}
+      - BASEROW_API_TOKEN=${BASEROW_API_TOKEN}
+      - BASEROW_TABLE_ID=${BASEROW_TABLE_ID:-810}
+      - JPEG_QUALITY=${JPEG_QUALITY:-85}
+      - AI_MODEL=${AI_MODEL:-auto}
+      - API_HOST=0.0.0.0
+      - API_PORT=1629
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/data
+      - ./config:/app/config
+    restart: unless-stopped
+    # Uncomment for GPU support (Moondream2):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]

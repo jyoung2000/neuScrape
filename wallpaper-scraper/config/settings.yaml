@@ -1,0 +1,53 @@
+scraper:
+  headless: true
+  request_delay_seconds: 2
+  max_concurrent_downloads: 5
+  max_pages_per_site: 50
+  scroll_timeout_seconds: 30
+  page_load_timeout_seconds: 30
+  block_resources: [font, media]
+  user_agent_rotation: true
+
+resolution:
+  min_width: 1920
+  min_height: 1080
+  target_aspect_ratios: ["16:9", "9:16", "21:9", "4:3", "3:2", "1:1", "32:9"]
+  aspect_ratio_tolerance: 0.02
+
+compression:
+  format: jpeg
+  quality: 85
+  optimize: true
+  subsampling: 0
+
+ai:
+  model: auto
+  title_max_words: 8
+  tag_count_min: 10
+  tag_count_max: 20
+
+deduplication:
+  enabled: true
+  hash_algorithm: phash
+  hamming_distance_threshold: 8
+  check_baserow: true
+
+baserow:
+  api_url: https://baserow.jymedia.cc
+  table_id: 810
+  use_field_names: true
+
+api:
+  host: "0.0.0.0"
+  port: 1629
+  max_concurrent_jobs: 2
+
+storage:
+  download_dir: /data/wallpapers
+  temp_dir: /tmp/wallpaper-scraper
+  keep_local_copy: false
+  max_file_size_mb: 50
+
+logging:
+  level: INFO
+  file: /data/logs/scraper.log
