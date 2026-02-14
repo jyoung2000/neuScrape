@@ -16,8 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /install /usr/local
 COPY . .
 
-# Use a shared location for Playwright browsers so both root (build) and scraper (runtime) can access them
+# Use shared locations for Playwright and HuggingFace so both root (build) and scraper (runtime) can access them
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+ENV HF_HOME=/opt/huggingface
+ENV TRANSFORMERS_CACHE=/opt/huggingface/hub
 
 # Install Playwright Chromium with system deps
 RUN playwright install --with-deps chromium
@@ -29,7 +31,8 @@ RUN python scripts/download_model.py
 RUN useradd -m scraper \
     && mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper \
     && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper \
-    && chmod -R o+rx /opt/playwright
+    && chmod -R o+rx /opt/playwright \
+    && chmod -R o+rx /opt/huggingface
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh

@@ -46,9 +46,16 @@ async def lifespan(app: FastAPI):
     captioner = WallpaperCaptioner(
         model_name=os.environ.get("AI_MODEL", "auto")
     )
+
     # Load AI model in background to not block startup
+    def _load_model():
+        try:
+            captioner.load()
+        except Exception as e:
+            logger.error("AI model failed to load: %s", e)
+
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, captioner.load)
+    loop.run_in_executor(None, _load_model)
 
     baserow = BaserowClient(
         api_url=os.environ.get("BASEROW_API_URL", "https://baserow.jymedia.cc"),
