@@ -1,4 +1,5 @@
 """FastAPI application — wallpaper scraper web API on port 1629."""
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -31,18 +32,21 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting wallpaper scraper...")
 
-    # Initialize components
+    # Initialize browser (non-fatal if it fails — API still serves /health)
     browser = BrowserManager(
         headless=os.environ.get("HEADLESS", "true").lower() == "true",
         proxy=os.environ.get("HTTP_PROXY"),
     )
-    await browser.start()
+    try:
+        await browser.start()
+        logger.info("Browser started successfully")
+    except Exception as e:
+        logger.error("Browser failed to start: %s — scraping disabled until restart", e)
 
     captioner = WallpaperCaptioner(
         model_name=os.environ.get("AI_MODEL", "auto")
     )
     # Load AI model in background to not block startup
-    import asyncio
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, captioner.load)
 

@@ -16,16 +16,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /install /usr/local
 COPY . .
 
-# Install Playwright Chromium
-RUN playwright install chromium
+# Use a shared location for Playwright browsers so both root (build) and scraper (runtime) can access them
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+
+# Install Playwright Chromium with system deps
+RUN playwright install --with-deps chromium
 
 # Pre-download AI model weights during build (so container starts instantly)
 RUN python scripts/download_model.py
 
-# Create non-root user and default directories
+# Create non-root user and set permissions
 RUN useradd -m scraper \
     && mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper \
-    && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper
+    && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper \
+    && chmod -R o+rx /opt/playwright
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
