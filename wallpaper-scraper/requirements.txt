@@ -13,6 +13,5 @@ rich
 tenacity
 aiofiles
 python-dotenv
-# torch installed separately in Dockerfile (CPU-only build)
-transformers
-accelerate
+# AI packages (torch, transformers, accelerate) installed at first startup
+# via requirements-ai.txt to keep Docker image small

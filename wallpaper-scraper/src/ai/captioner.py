@@ -30,13 +30,21 @@ class WallpaperCaptioner:
         self._device = "cpu"
         self._requested_model = model_name
         self._loaded = False
+        self._unavailable = False  # True if torch/transformers not installed
 
     def load(self) -> str:
         """Load the AI model. Returns the model type loaded."""
         if self._loaded:
             return self._model_type
+        if self._unavailable:
+            return "fallback"
 
-        import torch
+        try:
+            import torch
+        except ImportError:
+            logger.warning("torch not installed — AI captioning unavailable, using color-based fallback")
+            self._unavailable = True
+            return "fallback"
 
         # Detect hardware
         if torch.cuda.is_available():
@@ -103,6 +111,8 @@ class WallpaperCaptioner:
         """Generate a creative, human-readable wallpaper title (3-8 words, Title Case)."""
         if not self._loaded:
             self.load()
+        if self._unavailable:
+            return self._fallback_title(image)
 
         try:
             if self._model_type == "moondream2":
@@ -124,6 +134,8 @@ class WallpaperCaptioner:
         """Generate descriptive accessibility-style alt text (1-2 sentences)."""
         if not self._loaded:
             self.load()
+        if self._unavailable:
+            return "A wallpaper image."
 
         try:
             if self._model_type == "moondream2":
@@ -144,6 +156,8 @@ class WallpaperCaptioner:
         """Generate comma-separated tags in Instagram/Tumblr style (10-20 tags)."""
         if not self._loaded:
             self.load()
+        if self._unavailable:
+            return self._fallback_tags(image)
 
         try:
             if self._model_type == "moondream2":
@@ -400,9 +414,11 @@ class WallpaperCaptioner:
     @property
     def model_type(self) -> Optional[str]:
         """Return the loaded model type."""
+        if self._unavailable:
+            return "fallback"
         return self._model_type
 
     @property
     def is_loaded(self) -> bool:
         """Check if model is loaded."""
-        return self._loaded
+        return self._loaded or self._unavailable

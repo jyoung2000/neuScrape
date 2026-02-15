@@ -1,0 +1,6 @@
+# AI model packages — installed at first startup to /data/packages
+# (not in Docker image to keep build size small)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+transformers
+accelerate

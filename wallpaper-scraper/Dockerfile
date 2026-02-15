@@ -1,11 +1,10 @@
 FROM python:3.12-slim AS builder
 WORKDIR /build
 
-# Install CPU-only torch first (saves ~600MB vs CUDA build), then remaining deps
+# Install lightweight dependencies only (no torch/transformers — those install at first startup)
 COPY requirements.txt .
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r requirements.txt \
+RUN pip install --no-cache-dir -r requirements.txt \
     && playwright install chromium \
     && rm -rf /tmp/* /root/.cache
 
@@ -29,14 +28,15 @@ COPY . .
 # Playwright browser path
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
 
-# HuggingFace model cache lives on the data volume so it persists across restarts
-# and doesn't bloat the Docker image. Model downloads on first startup (~1.5GB one-time).
+# AI packages (torch, transformers) install at first startup to /data/packages
+# HuggingFace model weights cache to /data/models — both persist on the volume
+ENV PYTHONPATH=/data/packages
 ENV HF_HOME=/data/models
 ENV TRANSFORMERS_CACHE=/data/models/hub
 
 # Create non-root user and set permissions
 RUN useradd -m scraper \
-    && mkdir -p /data/wallpapers /data/logs /data/models /tmp/wallpaper-scraper \
+    && mkdir -p /data/wallpapers /data/logs /data/models /data/packages /tmp/wallpaper-scraper \
     && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper \
     && chmod -R o+rx /opt/playwright \
     && chmod +x /app/entrypoint.sh
@@ -47,6 +47,6 @@ VOLUME ["/data"]
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:1629/health')" || exit 1
 
-# Entrypoint creates dirs after volume mount, then drops to scraper user
+# Entrypoint installs AI packages on first run, then drops to scraper user
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "1629"]
