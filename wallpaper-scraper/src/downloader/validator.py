@@ -3,8 +3,9 @@ import io
 from dataclasses import dataclass
 from typing import Optional
 
-import imagehash
 from PIL import Image
+
+from src.utils.phash import phash as compute_phash
 
 from src.utils.aspect_ratio import (
     classify_aspect_ratio,
@@ -91,7 +92,7 @@ def validate_image(
 
     # Generate perceptual hash
     try:
-        phash = str(imagehash.phash(img))
+        phash = str(compute_phash(img))
     except Exception as e:
         logger.warning("Failed to generate phash: %s", e)
         phash = ""

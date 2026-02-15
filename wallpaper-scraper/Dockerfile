@@ -1,13 +1,3 @@
-FROM python:3.12-slim AS builder
-WORKDIR /build
-
-# Install lightweight dependencies only (no torch/transformers — those install at first startup)
-COPY requirements.txt .
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
-RUN pip install --no-cache-dir -r requirements.txt \
-    && playwright install chromium \
-    && rm -rf /tmp/* /root/.cache
-
 FROM python:3.12-slim
 WORKDIR /app
 
@@ -18,15 +8,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo libwebp7 libpng16-16 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages and Playwright browser from builder
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /opt/playwright /opt/playwright
+# Python dependencies (lightweight only — no torch/scipy)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && rm -rf /tmp/* /root/.cache
+
+# Playwright browser
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+RUN playwright install chromium \
+    && rm -rf /tmp/*
 
 COPY . .
-
-# Playwright browser path
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
 
 # AI packages (torch, transformers) install at first startup to /data/packages
 # HuggingFace model weights cache to /data/models — both persist on the volume

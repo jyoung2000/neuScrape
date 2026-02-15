@@ -1,9 +1,8 @@
 """Perceptual hash deduplication for wallpaper images."""
 from typing import Optional
 
-import imagehash
-
 from src.utils.logging import get_logger
+from src.utils.phash import hex_to_hash
 
 logger = get_logger("dedup")
 
@@ -24,13 +23,13 @@ class DeduplicationChecker:
             return None
 
         try:
-            new_hash = imagehash.hex_to_hash(phash_str)
+            new_hash = hex_to_hash(phash_str)
         except Exception:
             return None
 
         for existing_hash_str, url in self._session_hashes.items():
             try:
-                existing_hash = imagehash.hex_to_hash(existing_hash_str)
+                existing_hash = hex_to_hash(existing_hash_str)
                 distance = new_hash - existing_hash
                 if distance <= self.hamming_threshold:
                     logger.debug(
