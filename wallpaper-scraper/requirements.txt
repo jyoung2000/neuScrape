@@ -13,6 +13,6 @@ rich
 tenacity
 aiofiles
 python-dotenv
-torch
+# torch installed separately in Dockerfile (CPU-only build)
 transformers
 accelerate

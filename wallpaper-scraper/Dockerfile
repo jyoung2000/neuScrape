@@ -1,7 +1,13 @@
 FROM python:3.12-slim AS builder
-WORKDIR /app
+WORKDIR /build
+
+# Install CPU-only torch first (saves ~600MB vs CUDA build), then remaining deps
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt \
+    && playwright install chromium \
+    && rm -rf /tmp/* /root/.cache
 
 FROM python:3.12-slim
 WORKDIR /app
@@ -13,30 +19,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo libwebp7 libpng16-16 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /install /usr/local
+# Copy Python packages and Playwright browser from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /opt/playwright /opt/playwright
+
 COPY . .
 
-# Use shared locations for Playwright and HuggingFace so both root (build) and scraper (runtime) can access them
+# Playwright browser path
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright
-ENV HF_HOME=/opt/huggingface
-ENV TRANSFORMERS_CACHE=/opt/huggingface/hub
 
-# Install Playwright Chromium (system deps already installed above via apt-get)
-RUN playwright install chromium \
-    && rm -rf /tmp/* /root/.cache/pip
-
-# Pre-download AI model weights during build (so container starts instantly)
-# Then clean up root's HF cache (token file, etc) — models live in /opt/huggingface
-RUN python scripts/download_model.py \
-    && rm -rf /root/.cache/huggingface /root/.cache/pip /tmp/*
-ENV HF_HUB_OFFLINE=1
+# HuggingFace model cache lives on the data volume so it persists across restarts
+# and doesn't bloat the Docker image. Model downloads on first startup (~1.5GB one-time).
+ENV HF_HOME=/data/models
+ENV TRANSFORMERS_CACHE=/data/models/hub
 
 # Create non-root user and set permissions
 RUN useradd -m scraper \
-    && mkdir -p /data/wallpapers /data/logs /tmp/wallpaper-scraper \
+    && mkdir -p /data/wallpapers /data/logs /data/models /tmp/wallpaper-scraper \
     && chown -R scraper:scraper /app /data /tmp/wallpaper-scraper \
     && chmod -R o+rx /opt/playwright \
-    && chmod -R o+rx /opt/huggingface \
     && chmod +x /app/entrypoint.sh
 
 EXPOSE 1629
