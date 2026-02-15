@@ -85,7 +85,7 @@ async def lifespan(app: FastAPI):
     )
 
     # Wire up route dependencies
-    set_dependencies(job_queue, engine, captioner, browser)
+    set_dependencies(job_queue, engine, captioner, browser, baserow)
 
     logger.info("Wallpaper scraper ready on port %s", os.environ.get("API_PORT", "1629"))
     yield

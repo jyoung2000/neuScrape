@@ -5,6 +5,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 
 from src.api.models import (
+    BaserowSettingsRequest,
+    BaserowSettingsResponse,
     HealthResponse,
     JobListResponse,
     JobProgress,
@@ -21,15 +23,17 @@ _job_queue = None
 _scraper_engine = None
 _captioner = None
 _browser = None
+_baserow = None
 
 
-def set_dependencies(job_queue, scraper_engine, captioner, browser):
+def set_dependencies(job_queue, scraper_engine, captioner, browser, baserow=None):
     """Inject dependencies from app startup."""
-    global _job_queue, _scraper_engine, _captioner, _browser
+    global _job_queue, _scraper_engine, _captioner, _browser, _baserow
     _job_queue = job_queue
     _scraper_engine = scraper_engine
     _captioner = captioner
     _browser = browser
+    _baserow = baserow
 
 
 @router.post("/scrape", response_model=ScrapeResponse)
@@ -131,3 +135,37 @@ async def stats():
 
     s = _job_queue.stats
     return StatsResponse(**s)
+
+
+@router.get("/settings/baserow", response_model=BaserowSettingsResponse)
+async def get_baserow_settings():
+    """Get current Baserow connection settings."""
+    if not _baserow:
+        raise HTTPException(status_code=503, detail="Service not ready")
+
+    return BaserowSettingsResponse(
+        api_url=_baserow.api_url,
+        api_token_set=bool(_baserow.token),
+        table_id=_baserow.table_id,
+        is_configured=_baserow.is_configured,
+    )
+
+
+@router.put("/settings/baserow", response_model=BaserowSettingsResponse)
+async def update_baserow_settings(settings: BaserowSettingsRequest):
+    """Update Baserow connection settings at runtime."""
+    if not _baserow:
+        raise HTTPException(status_code=503, detail="Service not ready")
+
+    await _baserow.configure(
+        api_url=settings.api_url,
+        api_token=settings.api_token,
+        table_id=settings.table_id,
+    )
+
+    return BaserowSettingsResponse(
+        api_url=_baserow.api_url,
+        api_token_set=bool(_baserow.token),
+        table_id=_baserow.table_id,
+        is_configured=_baserow.is_configured,
+    )

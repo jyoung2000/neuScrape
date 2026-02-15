@@ -76,3 +76,20 @@ class StatsResponse(BaseModel):
     total_errors: int = 0
     by_aspect_ratio: dict[str, int] = Field(default_factory=dict)
     by_status: dict[str, int] = Field(default_factory=dict)
+
+
+class BaserowSettingsRequest(BaseModel):
+    """PUT /settings/baserow request body."""
+
+    api_url: Optional[str] = Field(default=None, description="Baserow API URL (e.g. https://baserow.jymedia.cc)")
+    api_token: Optional[str] = Field(default=None, description="Baserow API token")
+    table_id: Optional[int] = Field(default=None, ge=1, description="Baserow table ID")
+
+
+class BaserowSettingsResponse(BaseModel):
+    """GET /settings/baserow response."""
+
+    api_url: str
+    api_token_set: bool = Field(description="Whether an API token is configured (token value is not exposed)")
+    table_id: int
+    is_configured: bool = Field(description="Whether the client has a valid token")

@@ -157,6 +157,27 @@ class BaserowClient:
 
         return results
 
+    async def configure(self, api_url: str = None, api_token: str = None, table_id: int = None) -> None:
+        """Update Baserow settings at runtime. Resets the HTTP client if credentials change."""
+        changed = False
+        if api_url is not None and api_url != self.api_url:
+            self.api_url = api_url.rstrip("/")
+            changed = True
+        if api_token is not None and api_token != self.token:
+            self.token = api_token
+            changed = True
+        if table_id is not None and table_id != self.table_id:
+            self.table_id = table_id
+            changed = True
+
+        # Recreate the HTTP client so new headers take effect
+        if changed and self._client and not self._client.is_closed:
+            await self._client.aclose()
+            self._client = None
+
+        logger.info("Baserow settings updated: url=%s table=%d token=%s",
+                     self.api_url, self.table_id, "set" if self.token else "not set")
+
     async def close(self) -> None:
         """Close the HTTP client."""
         if self._client and not self._client.is_closed:
